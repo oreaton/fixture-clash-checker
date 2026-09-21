@@ -1,0 +1,17 @@
+[project]
+name = "clashcheck"
+version = "0.1.0"
+description = "Find venue and team scheduling clashes in a sports fixture CSV"
+readme = "README.md"
+requires-python = ">=3.9"
+license = { text = "MIT" }
+
+[project.scripts]
+clashcheck = "clashcheck:main"
+
+[tool.setuptools]
+py-modules = ["clashcheck"]
+
+[build-system]
+requires = ["setuptools>=61"]
+build-backend = "setuptools.build_meta"
