@@ -150,5 +150,34 @@ class ParseRowTest(unittest.TestCase):
             clashcheck.parse_row(2, row)
 
 
+class BuildReportTest(unittest.TestCase):
+    def test_empty_clash_list(self):
+        report = clashcheck.build_report([])
+        self.assertEqual(report, {"clash_count": 0, "clashes": []})
+
+    def test_serializes_a_clash(self):
+        a = fixture(2, "2026-09-22 14:00", 90, "Elm Park", "Reds", "Blues")
+        b = fixture(3, "2026-09-22 14:30", 90, "Elm Park", "Whites", "Greens")
+        clashes = clashcheck.find_clashes([a, b])
+        report = clashcheck.build_report(clashes)
+
+        self.assertEqual(report["clash_count"], 1)
+        entry = report["clashes"][0]
+        self.assertEqual(entry["kind"], "venue")
+        self.assertEqual(entry["a"]["line"], 2)
+        self.assertEqual(entry["a"]["start"], "2026-09-22T14:00:00")
+        self.assertEqual(entry["a"]["venue"], "Elm Park")
+        self.assertEqual(entry["b"]["line"], 3)
+
+    def test_report_is_json_serializable(self):
+        a = fixture(2, "2026-09-22 14:00", 90, "Elm Park", "Reds", "Blues")
+        b = fixture(3, "2026-09-22 14:30", 90, "Elm Park", "Reds", "Greens")
+        clashes = clashcheck.find_clashes([a, b])
+        report = clashcheck.build_report(clashes)
+        # round-trips without error and preserves the clash count
+        decoded = clashcheck.json.loads(clashcheck.json.dumps(report))
+        self.assertEqual(decoded["clash_count"], 2)
+
+
 if __name__ == "__main__":
     unittest.main()

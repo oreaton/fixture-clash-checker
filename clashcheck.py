@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import argparse
 import csv
+import json
 import sys
 from dataclasses import dataclass
 from datetime import datetime, timedelta
@@ -104,6 +105,33 @@ def find_clashes(fixtures: list, buffer_minutes: int = 0) -> list:
     return clashes
 
 
+def serialize_fixture(fixture: Fixture) -> dict:
+    return {
+        "line": fixture.line,
+        "start": fixture.start.isoformat(),
+        "end": fixture.end.isoformat(),
+        "venue": fixture.venue,
+        "home": fixture.home,
+        "away": fixture.away,
+    }
+
+
+def serialize_clash(clash: Clash) -> dict:
+    return {
+        "kind": clash.kind,
+        "detail": clash.detail,
+        "a": serialize_fixture(clash.a),
+        "b": serialize_fixture(clash.b),
+    }
+
+
+def build_report(clashes: list) -> dict:
+    return {
+        "clash_count": len(clashes),
+        "clashes": [serialize_clash(c) for c in clashes],
+    }
+
+
 def main(argv=None) -> int:
     parser = argparse.ArgumentParser(
         description="Find venue and team scheduling clashes in a sports fixture CSV."
@@ -116,15 +144,29 @@ def main(argv=None) -> int:
         metavar="MINUTES",
         help="minimum gap required between fixtures at the same venue or for the same team",
     )
+    parser.add_argument(
+        "--format",
+        choices=("text", "json"),
+        default="text",
+        help="output format: 'text' for humans (default) or 'json' for CI pipelines",
+    )
     args = parser.parse_args(argv)
 
     try:
         fixtures = load_fixtures(args.csv_path)
     except (OSError, ValueError) as exc:
-        print(f"error: {exc}", file=sys.stderr)
+        if args.format == "json":
+            print(json.dumps({"error": str(exc)}), file=sys.stderr)
+        else:
+            print(f"error: {exc}", file=sys.stderr)
         return 2
 
     clashes = find_clashes(fixtures, args.buffer)
+
+    if args.format == "json":
+        print(json.dumps(build_report(clashes), indent=2))
+        return 1 if clashes else 0
+
     if not clashes:
         print("no clashes found")
         return 0

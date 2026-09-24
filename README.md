@@ -15,12 +15,35 @@ it finds so it can be fixed before publishing.
 ```
 python clashcheck.py fixtures.csv
 python clashcheck.py fixtures.csv --buffer 30
+python clashcheck.py fixtures.csv --format json
 ```
 
 `--buffer MINUTES` requires at least that many minutes between fixtures at
 the same venue or involving the same team, not just non-overlapping times.
 Use it to account for pitch turnaround, or for the time it takes a team to
 travel between venues.
+
+`--format json` prints a single JSON object to stdout instead of the
+line-by-line text report, for use in CI pipelines that want to gate a build
+on clashes:
+
+```
+{
+  "clash_count": 1,
+  "clashes": [
+    {
+      "kind": "venue",
+      "detail": "both at 'Elm Park'",
+      "a": {"line": 2, "start": "2026-09-22T14:00:00", "end": "2026-09-22T15:30:00", "venue": "Elm Park", "home": "Reds", "away": "Blues"},
+      "b": {"line": 3, "start": "2026-09-22T15:00:00", "end": "2026-09-22T16:30:00", "venue": "Elm Park", "home": "Whites", "away": "Greens"}
+    }
+  ]
+}
+```
+
+With `--format json`, a file that can't be read is reported as a JSON object
+on stderr (`{"error": "..."}`) rather than plain text, so scripts only have
+to parse one format.
 
 Exit status is 0 if no clashes were found, 1 if clashes were found, and 2 if
 the input file couldn't be read.
